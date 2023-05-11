@@ -1,0 +1,50 @@
+import cv2 as cv
+import numpy as np
+
+rsm = cv.imread("yolu.jpg")
+düzenlenmiş_rsm = cv.resize(rsm, (800, 600), interpolation=cv.INTER_AREA)
+
+#Renk uzayını değiştiriyoruz
+hsv = cv.cvtColor(düzenlenmiş_rsm, cv.COLOR_BGR2HSV)
+
+# Renk filtresi uyguluyoruz
+lower_yellow = np.array([20, 100, 100], dtype=np.uint8)
+upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
+mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
+
+lower_white = np.array([0, 0, 200], dtype=np.uint8)
+upper_white = np.array([255, 30, 255], dtype=np.uint8)
+mask_white = cv.inRange(hsv, lower_white, upper_white)
+
+mask = cv.bitwise_or(mask_white, mask_yellow)
+
+# Görüntüye uygulanacak filtreleri ayarlıyoruz
+kernel_size = 5
+blur_gray = cv.GaussianBlur(mask, (kernel_size, kernel_size), 0)
+
+low_threshhold = 50
+high_threshhold = 150
+edges = cv.Canny(blur_gray, low_threshhold,high_threshhold)
+
+#hough dönüşümlerini kullanarak çizgileri tespit ediyoruz
+rho = 2
+theta = np.pi/180
+threshhold = 35
+min_line_length = 40 #fitlerinicek çizginin maksimum ne kadar kısa olabiliceğini belirler. bu değerden kısa çizgileri almaz. küçük yaparsan resimde görüntü olur.
+max_line_gap = 20 #çizgiler arası boşluğu belirler. örneğin : kesik şeritli yolları dümdüz algılar.
+
+lines = cv.HoughLinesP(edges, rho, theta, threshhold, np.array([]), min_line_length, max_line_gap)
+
+# Çizgileri görüntü üzerinde çiziyoruz
+line_image = np.zeros_like(düzenlenmiş_rsm)
+for line in lines:
+    for x1 , y1, x2, y2 in line:
+        cv.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 5)
+
+#sonuç görüntüsünü oluşturuyoruz
+result = cv.addWeighted(düzenlenmiş_rsm, 0.8, line_image, 1, 0)
+
+#görüntüyü gösteriyoruz
+cv.imshow("result", result)
+cv.waitKey(0)
+cv.destroyAllWindows()
