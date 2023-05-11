@@ -19,18 +19,18 @@ mask_white = cv.inRange(hsv, lower_white, upper_white)
 mask = cv.bitwise_or(mask_white, mask_yellow)
 
 # Görüntüye uygulanacak filtreleri ayarlıyoruz
-kernel_size = 5
-blur_gray = cv.GaussianBlur(mask, (kernel_size, kernel_size), 0)
+kernel_size = 5 #filtreleme yapar. yükseltirsen ayrıntı artar. resmin alt tarafı mükemmelleşir ama üst tarafından piksel kısarar sağlanır. deneme yanılmayla makul rakamı seç.
+blur_gray = cv.GaussianBlur(mask, (kernel_size, kernel_size), 0)# kernel size 2 kere çünkü biri boy diğeri yükseklik. resimdeki gürültüyü azaltır.
 
-low_threshhold = 50
-high_threshhold = 150
+low_threshhold = 50 # yükseltirsen çizgiler belirginleşebilir ama bazı çizgiler de göz ardı edilebilir
+high_threshhold = 150 # yükseltirsen çizilen çizgilerin doğruluğunu arttırabilir ama çizilen çizgi sayısını da azaltabilir. denge kur.
 edges = cv.Canny(blur_gray, low_threshhold,high_threshhold)
 
 #hough dönüşümlerini kullanarak çizgileri tespit ediyoruz
 rho = 2
 theta = np.pi/180
 threshhold = 35
-min_line_length = 40 #fitlerinicek çizginin maksimum ne kadar kısa olabiliceğini belirler. bu değerden kısa çizgileri almaz. küçük yaparsan resimde görüntü olur.
+min_line_length = 40 #fitlerinicek çizginin maksimum ne kadar kısa olabiliceğini belirler. bu değerden kısa çizgileri almaz. küçük yaparsan resimde görültü olur.
 max_line_gap = 20 #çizgiler arası boşluğu belirler. örneğin : kesik şeritli yolları dümdüz algılar.
 
 lines = cv.HoughLinesP(edges, rho, theta, threshhold, np.array([]), min_line_length, max_line_gap)
