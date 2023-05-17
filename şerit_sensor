@@ -1,50 +1,58 @@
 import cv2 as cv
 import numpy as np
 
-rsm = cv.imread("yolu.jpg")
-düzenlenmiş_rsm = cv.resize(rsm, (800, 600), interpolation=cv.INTER_AREA)
+cap = cv.VideoCapture("vıdeo.mp4")
 
-#Renk uzayını değiştiriyoruz
-hsv = cv.cvtColor(düzenlenmiş_rsm, cv.COLOR_BGR2HSV)
 
-# Renk filtresi uyguluyoruz
-lower_yellow = np.array([20, 100, 100], dtype=np.uint8)
-upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
-mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
 
-lower_white = np.array([0, 0, 200], dtype=np.uint8)
-upper_white = np.array([255, 30, 255], dtype=np.uint8)
-mask_white = cv.inRange(hsv, lower_white, upper_white)
+while True:
+    ret, frame = cap.read()
 
-mask = cv.bitwise_or(mask_white, mask_yellow)
+    if ret:
+    #Renk uzayını değiştiriyoruz
+      hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+
+     #Renk filtresi uyguluyoruz
+      lower_yellow = np.array([20, 100, 100], dtype=np.uint8)
+      upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
+      mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
+
+      lower_white = np.array([0, 0, 200], dtype=np.uint8)
+      upper_white = np.array([255, 30, 255], dtype=np.uint8)
+      mask_white = cv.inRange(hsv, lower_white, upper_white)
+
+      mask = cv.bitwise_or(mask_white, mask_yellow)
 
 # Görüntüye uygulanacak filtreleri ayarlıyoruz
-kernel_size = 5 #filtreleme yapar. yükseltirsen ayrıntı artar. resmin alt tarafı mükemmelleşir ama üst tarafından piksel kısarar sağlanır. deneme yanılmayla makul rakamı seç.
-blur_gray = cv.GaussianBlur(mask, (kernel_size, kernel_size), 0)# kernel size 2 kere çünkü biri boy diğeri yükseklik. resimdeki gürültüyü azaltır.
+      kernel_size = 5 #filtreleme yapar. yükseltirsen ayrıntı artar. resmin alt tarafı mükemmelleşir ama üst tarafından piksel kısarak sağlanır. deneme yanılmayla makul rakamı seç.
+      blur_gray = cv.GaussianBlur(mask, (kernel_size, kernel_size), 0)# kernel size 2 kere çünkü biri boy diğeri yükseklik. resimdeki gürültüyü azaltır.
 
-low_threshhold = 50 # yükseltirsen çizgiler belirginleşebilir ama bazı çizgiler de göz ardı edilebilir
-high_threshhold = 150 # yükseltirsen çizilen çizgilerin doğruluğunu arttırabilir ama çizilen çizgi sayısını da azaltabilir. denge kur.
-edges = cv.Canny(blur_gray, low_threshhold,high_threshhold)
+      low_threshhold = 50 # yükseltirsen çizgiler belirginleşebilir ama bazı çizgiler de göz ardı edilebilir
+      high_threshhold = 150 # yükseltirsen çizilen çizgilerin doğruluğunu arttırabilir ama çizilen çizgi sayısını da azaltabilir. denge kur.
+      edges = cv.Canny(blur_gray, low_threshhold,high_threshhold) #cv.canny kenarları algılamak için gradyan yoğunluk kullanır. low threshhold ve high threshhold da kenar oluşturulurkenki alt ve üst sınırlardır.
 
 #hough dönüşümlerini kullanarak çizgileri tespit ediyoruz
-rho = 2
-theta = np.pi/180
-threshhold = 35
-min_line_length = 40 #fitlerinicek çizginin maksimum ne kadar kısa olabiliceğini belirler. bu değerden kısa çizgileri almaz. küçük yaparsan resimde görültü olur.
-max_line_gap = 20 #çizgiler arası boşluğu belirler. örneğin : kesik şeritli yolları dümdüz algılar.
+      rho = 2 # küçülürse daha fazla çizgi tespit edilir ama işlem hızı yavaşlar.
+      theta = np.pi/180 # küçülürse daha hassas tespit sağlar ama işlem yükü azalır. videonun oynama hızı azalır yavaşlar vb.
+      threshhold = 35 # eğer yükselirse daha yüksek oy sayısı gerektirdiği için tespit edilen çizgi sayısı azalır.
+      min_line_length = 40 #fitlerinicek çizginin maksimum ne kadar kısa olabiliceğini belirler. bu değerden kısa çizgileri almaz. küçük yaparsan resimde görültü olur.
+      max_line_gap = 20 #çizgiler arası boşluğu belirler. örneğin : kesik şeritli yolları dümdüz algılar.
 
-lines = cv.HoughLinesP(edges, rho, theta, threshhold, np.array([]), min_line_length, max_line_gap)
+      lines = cv.HoughLinesP(edges, rho, theta, threshhold, np.array([]), min_line_length, max_line_gap)  #"lines" hough dönüşümü sonrası çizgileirn koordinatlarını tutan bir numPY dizisidir. bu dizi daha sonra görselleştirme için veya bazı hesaplamalar için kullanılabilir.
 
 # Çizgileri görüntü üzerinde çiziyoruz
-line_image = np.zeros_like(düzenlenmiş_rsm)
-for line in lines:
-    for x1 , y1, x2, y2 in line:
-        cv.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 5)
+      line_image = np.zeros_like(frame) # vıd adlı videoyu referans alarak aynı boyutta siyah bi görüntü oluşturur . bu görüntü üzerinde hough dönüşümlerini uygular. np.zeros_like fonksiyonu vıd değişkenindeki video ile tamamen aynı boyutta siyah bi görüntü oluşturmak için kullanılır.
+      for line in lines: #lines listesindeki her bir elemanı line olarak işleme sokar
+        for x1 , y1, x2, y2 in line: #çizgilerin başlangıç ve bitiş noktalarını ifade eder.
+          cv.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 5) # line_image çizgini çizileceği görüntü . orjinal videonun siyaha dönüşmüş hali yani. (255, 0, 0) mavi rengin HSV deki koordinatı. 5 ise çizginin kalınlığıdır.
 
 #sonuç görüntüsünü oluşturuyoruz
-result = cv.addWeighted(düzenlenmiş_rsm, 0.8, line_image, 1, 0)
+      result = cv.addWeighted(frame, 0.8, line_image, 1, 0) #Bu satır, vıd adlı girdi videosu ile line_image adlı siyah bir görüntü arasında ağırlıklı bir toplama işlemi gerçekleştirir ve sonucu result değişkenine atar.İlk parametre olan vıd, orijinal girdi videosudur. İkinci parametre olan 0.8, girdi videosunun üzerine bindirilecek olan çizgilerin şeffaflığını belirler. Bu değer 0 ile 1 arasında bir sayı olmalıdır. Burada, çizgilerin orijinal görüntü üzerinde daha az belirgin olmasını istediğimiz için 0.8 seçilmiştir.Üçüncü parametre olan line_image, Hough dönüşü sonucu elde edilen çizgilerin görüntüsüdür. Bu siyah-beyaz görüntü, siyah zemin üzerinde beyaz çizgiler içerir.Üçüncü parametre olan line_image, Hough dönüşü sonucu elde edilen çizgilerin görüntüsüdür. Bu siyah-beyaz görüntü, siyah zemin üzerinde beyaz çizgiler içerir.
 
-#görüntüyü gösteriyoruz
-cv.imshow("result", result)
-cv.waitKey(0)
+      cv.imshow("result", result)
+
+      if cv.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
 cv.destroyAllWindows()
